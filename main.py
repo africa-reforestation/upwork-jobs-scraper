@@ -1,17 +1,19 @@
-import os
 import time
-import subprocess
+import logging
+from src.service import run_service
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def run_script():
-    """Runs the main service script and restarts it if it crashes."""
+    """Runs the main service script."""
     while True:
-        print("Starting service.py...")
-        process = subprocess.Popen(["python", "src/service.py"])
-        
-        # Wait for the process to finish
-        process.wait()
-        
-        print(f"Service.py exited with code {process.returncode}. Restarting...")
+        logging.info("Starting service.py...")
+        run_service()
+        logging.warning("Service.py finished. Restarting...")
         time.sleep(1)  # Optional delay before restarting
 
 if __name__ == "__main__":

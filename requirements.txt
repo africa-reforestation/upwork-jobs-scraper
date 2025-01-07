@@ -1,0 +1,12 @@
+langgraph
+playwright
+html2text
+pandas
+google-generativeai
+colorama
+python-dotenv
+litellm
+playwright
+agentql
+prisma
+pydantic

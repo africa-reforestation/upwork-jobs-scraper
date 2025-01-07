@@ -1,0 +1,28 @@
+datasource db {
+  provider = "postgresql"
+  // url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+model JobPost {
+  id              String  @id @unique
+  title           String
+  description     String
+  job_type        String
+  experience_level String
+  duration        String?
+  rate            String?  // Make optional
+  proposal_count  String
+  payment_verified String
+  country         String?
+  ratings         String
+  spent           String
+  skills          String
+  category        String?
+}
