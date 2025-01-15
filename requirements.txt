@@ -10,3 +10,4 @@ playwright
 agentql
 prisma
 pydantic
+streamlit
