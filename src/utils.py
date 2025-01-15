@@ -13,9 +13,10 @@ import pandas as pd
 from playwright.sync_api import sync_playwright
 from src.prompts import SCRAPER_PROMPT_TEMPLATE
 from litellm import completion
-from prisma import Prisma
 from dotenv import load_dotenv
 from src.models import JobInformation, UpworkJobs
+import streamlit as st
+
 
 # Configure logging
 logging.basicConfig(
@@ -104,8 +105,6 @@ async def merge_job_ids_with_data(job_posts_data, job_ids):
     return merged_data
 
 async def push_to_postgres(job_posts_data):
-    client = Prisma()
-    await client.connect()
     for job in job_posts_data:
         try:
             # Skip data with a null or missing job_id
@@ -171,13 +170,51 @@ async def push_to_postgres(job_posts_data):
             # logging.info(f"Data types: {', '.join(f'{k}: {type(v)}' for k, v in job_data.items())}")
 
             # Insert into the database
-            await client.jobpost.create(job_data)
+            # Initialize connection.
+            conn = st.connection("neon", type="sql")
+
+            # Perform query.
+            query = f"""
+            INSERT INTO JobPost (
+                id,
+                title,
+                description,
+                job_type,
+                experience_level,
+                duration,
+                rate,
+                proposal_count,
+                payment_verified,
+                country,
+                ratings,
+                spent,
+                skills,
+                category
+            ) VALUES (
+                '{job_data['id']}',
+                '{job_data['title'].replace("'", "''")}', -- Escape single quotes
+                '{job_data['description'].replace("'", "''")}',
+                '{job_data['job_type']}',
+                '{job_data['experience_level']}',
+                {f"'{job_data['duration']}'" if job_data['duration'] else 'NULL'},
+                {f"'{job_data['rate']}'" if job_data['rate'] else 'NULL'},
+                '{job_data['proposal_count']}',
+                '{job_data['payment_verified']}',
+                {f"'{job_data['country']}'" if job_data['country'] else 'NULL'},
+                '{job_data['ratings']}',
+                '{job_data['spent']}',
+                {f"'{job_data['skills']}'" if job_data['skills'] else 'NULL'},
+                {f"'{job_data['category']}'" if job_data['category'] else 'NULL'}
+            );
+            """
+            df = conn.query(query, ttl="10m")
+
+
 
         except Exception as e:
             # Log the error with detailed context
             logging.error(f"Error pushing to Postgres: {e}. Data: {json.dumps(job, indent=2)}")
             raise
-    await client.disconnect()
 
 async def scrape_jobs_from_upwork(url: str) -> str:
     USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
