@@ -1,30 +1,21 @@
-import subprocess
 import time
 import logging
 from src.service import run_service
+import asyncio
 
-# Configure logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-import streamlit as st
-
-
-def generate_prisma_client():
-    print("GENERATING PRISMA CLIENT")
-    subprocess.call(["prisma", "generate"])
-    print("GENERATED PRISMA CLIENT")
-
-def run_script():
+async def run_script():
     """Runs the main service script."""
-    generate_prisma_client()
     while True:
         logging.info("Starting service.py...")
-        run_service()
+        await run_service()
         logging.warning("Service.py finished. Restarting...")
-        time.sleep(1)  # Optional delay before restarting
+        time.sleep(1) 
 
 if __name__ == "__main__":
-    run_script()
+    asyncio.run(run_script())

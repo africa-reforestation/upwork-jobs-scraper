@@ -1,2 +1,103 @@
+# Byte-compiled files
+*.py[cod]
+__pycache__/
+*.so
+*.pyd
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
 .env
-.streamlit
+.streamlit/
+
+
+# Distribution and packaging
+*.egg
+*.egg-info/
+dist/
+build/
+wheels/
+
+# Installed dependencies
+.Python
+pip-wheel-metadata/
+*.lock
+poetry.lock
+
+# Caches
+*.log
+*.cache
+*.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.pytest_cache/
+htmlcov/
+
+# Testing output
+.junit/
+.tox/
+.mypy_cache/
+.pytest_cache/
+.dmypy.json
+.sorcery/
+.pyre/
+hypothesis/
+
+# Documentation builds
+docs/_build/
+site/
+book/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Environment variables and secrets
+.env
+.env.*
+*.ini
+*.toml
+
+# Flask and Django files
+instance/
+*.db
+*.sqlite3
+
+# Static and media files (if applicable)
+staticfiles/
+media/
+
+# Local tools
+!.gitignore
+*.bak
+*.orig
+*.rej
+*.gz
+
+# Debugging files
+debug.log
+logs/
+
+# Ignore Python bytecode and cache directories
+**/__pycache__/
