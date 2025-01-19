@@ -1,7 +1,21 @@
+###Tutoral4
+"""
+Basic example of scraping pipeline using SmartScraper with schema
+"""
+
+import os
+from typing import List
 from enum import Enum
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from scrapegraphai.graphs import SmartScraperGraph
 
+load_dotenv()
+
+# ************************************************
+# Define the output schema for the graph
+# ************************************************
 
 class JobLinks(BaseModel):
     link: str = Field(description="The link to the job")
@@ -15,6 +29,7 @@ class JobType(str, Enum):
 
 class JobInformation(BaseModel):
     title: str = Field(description="The title of the job")
+    date_time: str = Field(description="The Date and time the job was posted")
     description: str = Field(description="The full description of the job")
     job_type: JobType = Field(
         description="The type of the job (Fixed or Hourly)"
@@ -33,4 +48,7 @@ class JobInformation(BaseModel):
     client_infomation: Optional[str] = Field(
         description="The description of the client including location, number of hires, total spent, etc."
     )
-    
+
+class Jobs(BaseModel):
+    projects: List[JobInformation]
+
