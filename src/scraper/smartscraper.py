@@ -1,9 +1,4 @@
-###Tutoral4
-"""
-Basic example of scraping pipeline using SmartScraper with schema
-"""
 
-import os
 from typing import List
 from enum import Enum
 from dotenv import load_dotenv
@@ -27,7 +22,9 @@ class JobType(str, Enum):
     FIXED = "Fixed"
     HOURLY = "Hourly"
 
+
 class JobInformation(BaseModel):
+    id: str = Field(description="The unique job title href link")
     title: str = Field(description="The title of the job")
     date_time: str = Field(description="The Date and time the job was posted")
     description: str = Field(description="The full description of the job")
@@ -48,6 +45,7 @@ class JobInformation(BaseModel):
     client_infomation: Optional[str] = Field(
         description="The description of the client including location, number of hires, total spent, etc."
     )
+
 
 class Jobs(BaseModel):
     projects: List[JobInformation]

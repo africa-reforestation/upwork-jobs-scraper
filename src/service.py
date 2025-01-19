@@ -1,12 +1,10 @@
-import time
 import logging
-import os
-from dotenv import load_dotenv
+import random
+import re
+import streamlit as st
+from src.scraper.jobpostcrud import JobPostCRUD
+from src.scraper.smartscraper import Jobs
 from scrapegraphai.graphs import SmartScraperGraph
-from scraper.jobpostcrud import JobPostCRUD
-from scraper.smartscraper import Jobs
-
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -19,6 +17,7 @@ def process_jobs(crud_instance, jobs_data):
     for job in jobs_data['projects']:
         # Prepare the data for the create_job function
         job_data = {
+            'id': job['id'],
             'title': job['title'],
             'description': job['description'],
             'job_type': job['job_type'],  # Ensure this matches the enum values (e.g., Fixed or Hourly)
@@ -43,11 +42,11 @@ def process_jobs(crud_instance, jobs_data):
 
 def run_service():
     logging.info("Started scraping Upwork data...")
+    
     # ************************************************
     # Define the configuration for the graph
     # ************************************************
-
-    groq_api_key = os.getenv("GROQ_API_KEY")
+    groq_api_key = st.secrets["general"]["GROQ_API_KEY"]
 
     graph_config = {
         "llm": {
@@ -65,10 +64,26 @@ def run_service():
         config=graph_config,
     )
 
-    jobs = smart_scraper_graph.run()
+    extract_job_id = lambda href: re.search(r'_~(\d+)', href).group(1) if re.search(r'_~(\d+)', href) else None
 
-    crud = JobPostCRUD() 
-    process_jobs(crud, jobs)
+    jobs = smart_scraper_graph.run()
+    # logging.info(f"Jobs data: {jobs}")
+
+    # Ensure jobs is iterable and contains dictionaries
+    for job in jobs:
+        if isinstance(job, dict) and "id" in job:
+            job_id = extract_job_id(job["id"])
+            if job_id:
+                job["id"] = job_id
+            else:
+                job["id"] = ''.join(str(random.randint(0, 9)) for _ in range(21))
+        else:
+            logging.error(f"Unexpected job format: {job}")
+            continue
+
+    crud = JobPostCRUD()
+    process_jobs(crud, {"projects": jobs})
+
 
 if __name__ == "__main__":
     run_service()

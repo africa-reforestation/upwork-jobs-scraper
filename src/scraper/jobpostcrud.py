@@ -35,6 +35,7 @@ class JobPost(Base):
 
 # Pydantic model for validation
 class JobInformation(BaseModel):
+    id: str
     title: str
     description: str
     job_type: JobType
@@ -51,11 +52,18 @@ class JobInformation(BaseModel):
 
 class JobPostCRUD:
     def __init__(self):
-        # Streamlit connection setup
-        self.conn = st.connection("neon", type="sql")
-        self.engine = create_engine(self.conn._connection_string)  # Use the connection string from Streamlit
+        # Retrieve the connection URL from Streamlit secrets
+        connection_url = st.secrets["connections"]["neon"]["url"]
+
+        # Create the SQLAlchemy engine
+        self.engine = create_engine(connection_url)
+
+        # Configure sessionmaker
         self.Session = sessionmaker(bind=self.engine)
+
+        # Create tables if they do not already exist
         Base.metadata.create_all(self.engine)
+
 
     def create_job(self, job_data: dict):
         """Create a new job entry."""

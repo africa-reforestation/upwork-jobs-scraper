@@ -1,7 +1,6 @@
 import time
 import logging
 from src.service import run_service
-import asyncio
 
 
 logging.basicConfig(
@@ -9,13 +8,15 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-async def run_script():
+def run_script():
     """Runs the main service script."""
     while True:
-        logging.info("Starting service.py...")
-        await run_service()
-        logging.warning("Service.py finished. Restarting...")
-        time.sleep(1) 
+        try:
+            logging.info("Starting service.py...")
+            run_service()
+        except Exception as e:
+            logging.warning(f"Service.py finished with an error: {e}. Restarting...")
+            time.sleep(300)
 
 if __name__ == "__main__":
-    asyncio.run(run_script())
+    run_script()
