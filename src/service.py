@@ -1,8 +1,10 @@
 import logging
 import random
 import re
+from typing import Any, Dict, List, Optional
+from pydantic import ValidationError
 import streamlit as st
-from src.scraper.jobpostcrud import JobPostCRUD
+from src.scraper.jobpostcrud import JobInformation, JobPostCRUD
 from src.scraper.smartscraper import Jobs
 from scrapegraphai.graphs import SmartScraperGraph
 
@@ -12,33 +14,73 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-def process_jobs(crud_instance, jobs_data):
-    """Loops through job data and calls the create_job function."""
-    for job in jobs_data['projects']:
-        # Prepare the data for the create_job function
-        job_data = {
-            'id': job['id'],
-            'title': job['title'],
-            'description': job['description'],
-            'job_type': job['job_type'],  # Ensure this matches the enum values (e.g., Fixed or Hourly)
-            'experience_level': job['experience_level'],
-            'duration': job['duration'],
-            'rate': job['rate'],
-            'proposal_count': 0,  # Default value
-            'payment_verified': False,  # Default value
-            'country': 'Unknown',  # Default or placeholder value
-            'ratings': None,  # Placeholder for missing ratings
-            'spent': None,  # Placeholder for missing spent data
-            'skills': None,  # Placeholder for missing skills
-            'category': 'General'  # Placeholder or default category
-        }
+def preprocess_job_data(raw_jobs_data: List[dict]) -> List[dict]:
+    """
+    Preprocess raw job data by validating and normalizing the job fields.
 
-        # Call the create_job function
-        result = crud_instance.create_job(job_data)
+    Args:
+        raw_jobs_data (List[dict]): List of raw job data.
 
-        # Print the result for each job
-        logging.info(f"Processing job: {job['title']}")
-        logging.info(f"Result: {result}")
+    Returns:
+        List[dict]: List of processed job data.
+    """
+    processed_jobs = []
+    extract_job_id = lambda href: re.search(r'_~(\d+)', href).group(1) if re.search(r'_~(\d+)', href) else None
+
+    for job in raw_jobs_data.get("projects", []):
+        if isinstance(job, dict):
+            job_id = extract_job_id(job.get("id", ""))
+            if job_id:
+                job["id"] = job_id
+            else:
+                # Generate a random fallback ID if job_id is invalid
+                job["id"] = ''.join(str(random.randint(0, 9)) for _ in range(21))
+            
+            processed_jobs.append(job)
+        else:
+            logging.error(f"Unexpected job format: {job}")
+            continue
+
+    return processed_jobs
+
+
+def process_jobs(processed_jobs_data: Dict[str, Any]) -> None:
+    """
+    Process and validate jobs from raw data.
+    """
+    crud = JobPostCRUD()
+    for job in processed_jobs_data.get("projects", []):
+        logging.info(f"Processing job: {job}")
+        try:
+            # Preprocess the job data
+            preprocessed_data = preprocess_job_data(job)
+
+            # Custom validation of job data
+            validated_data = validate_job_data(preprocessed_data)
+
+            # Convert to Pydantic model for further validation and processing
+            job_info = JobInformation(**validated_data)
+            
+            # Save the job to the database
+            result = crud.create_job(job_info.dict())
+            logging.info(f"Processed job: {job['title']}, Result: {result}")
+
+        except ValidationError as e:
+            logging.error(f"Validation error for job: {job['title']}, Error: {e.errors()}")
+        except ValueError as e:
+            logging.error(f"Custom validation error for job: {job['title']}, Error: {str(e)}")
+        except Exception as e:
+            logging.error(f"Unexpected error for job: {job['title']}, Error: {str(e)}")
+
+def validate_job_data(job):
+    required_keys = {'id', 'title', 'date_time', 'description', 'job_type', 
+                     'experience_level', 'duration', 'rate', 'client_infomation'}
+    if not isinstance(job, dict):
+        raise TypeError(f"Job entry must be a dictionary, got {type(job)}")
+    missing_keys = required_keys - job.keys()
+    if missing_keys:
+        raise ValueError(f"Missing keys in job entry: {missing_keys}")
+    return True
 
 def run_service():
     logging.info("Started scraping Upwork data...")
@@ -64,25 +106,17 @@ def run_service():
         config=graph_config,
     )
 
-    extract_job_id = lambda href: re.search(r'_~(\d+)', href).group(1) if re.search(r'_~(\d+)', href) else None
+    # Fetch and parse the data
+    jobs_data = smart_scraper_graph.run()
+    logging.info(f"Raw jobs data: {jobs_data}")
 
-    jobs = smart_scraper_graph.run()
-    # logging.info(f"Jobs data: {jobs}")
+    # Ensure jobs_data is structured as expected
+    if not isinstance(jobs_data, dict) or "projects" not in jobs_data:
+        logging.error("Unexpected jobs data structure. Expected a dictionary with 'projects' key.")
+        return
 
-    # Ensure jobs is iterable and contains dictionaries
-    for job in jobs:
-        if isinstance(job, dict) and "id" in job:
-            job_id = extract_job_id(job["id"])
-            if job_id:
-                job["id"] = job_id
-            else:
-                job["id"] = ''.join(str(random.randint(0, 9)) for _ in range(21))
-        else:
-            logging.error(f"Unexpected job format: {job}")
-            continue
-
-    crud = JobPostCRUD()
-    process_jobs(crud, {"projects": jobs})
+    preprocessed_data = preprocess_job_data(jobs_data)
+    logging.info(f"Preprocessed jobs data: {preprocessed_data}")
 
 
 if __name__ == "__main__":

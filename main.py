@@ -11,12 +11,17 @@ logging.basicConfig(
 def run_script():
     """Runs the main service script."""
     while True:
-        try:
-            logging.info("Starting service.py...")
-            run_service()
-        except Exception as e:
-            logging.warning(f"Service.py finished with an error: {e}. Restarting...")
-            time.sleep(300)
+        logging.info("Starting service.py...")
+        run_service()
+        logging.warning(f"Service.py finished with an error: Restarting...")
+        time.sleep(300)
+    # while True:
+    #     try:
+    #         logging.info("Starting service.py...")
+    #         run_service()
+    #     except Exception as e:
+    #         logging.warning(f"Service.py finished with an error: {e}. Restarting...")
+    #         time.sleep(300)
 
 if __name__ == "__main__":
     run_script()

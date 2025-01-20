@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, Text, Enum as SQ
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import create_engine
 from enum import Enum
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, validator
 
 Base = declarative_base()
 
@@ -37,18 +37,29 @@ class JobPost(Base):
 class JobInformation(BaseModel):
     id: str
     title: str
+    date_time: str
     description: str
-    job_type: JobType
+    job_type: str
     experience_level: str
     duration: str
-    rate: Optional[str]
-    proposal_count: Optional[int] = 0
-    payment_verified: Optional[bool] = False
-    country: str
-    ratings: Optional[float]
-    spent: Optional[float]
-    skills: Optional[str]
-    category: str
+    rate: str
+    client_information: str
+
+    @validator("id", pre=True)
+    def validate_id(cls, value):
+        # Ensure ID is a string
+        return str(value)
+
+    @validator("job_type", pre=True)
+    def normalize_job_type(cls, value):
+        # Normalize job_type values
+        if isinstance(value, str):
+            value = value.lower().strip()
+            if "hourly" in value:
+                return "Hourly"
+            if "fixed" in value:
+                return "Fixed"
+        raise ValueError("Invalid job type format")
 
 class JobPostCRUD:
     def __init__(self):
@@ -67,6 +78,7 @@ class JobPostCRUD:
 
     def create_job(self, job_data: dict):
         """Create a new job entry."""
+        session = None  # Initialize session to None
         try:
             validated_data = JobInformation(**job_data)
             new_job = JobPost(**validated_data.dict())
@@ -79,7 +91,9 @@ class JobPostCRUD:
         except Exception as e:
             return {"status": "error", "message": str(e)}
         finally:
-            session.close()
+            if session:  # Only close session if it was initialized
+                session.close()
+
 
     def read_job(self, job_id: int):
         """Retrieve a job by ID."""
